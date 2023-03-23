@@ -4,13 +4,13 @@
 #include <math.h>
 #include "mpi.h"
 
-#define MATRIX_SIZE 4
-#define SMALL_MATRIX_SIZE 2
+#define MATRIX_SIZE 16
+#define SMALL_MATRIX_SIZE 8
 #define MATRIX_SIZE_IN_SMALL_MATRIX 2
 
 int main(int argc, char **argv) {
 	int smallMatrix[SMALL_MATRIX_SIZE][SMALL_MATRIX_SIZE];
-	int tsmallMatrix[SMALL_MATRIX_SIZE][SMALL_MATRIX_SIZE];
+	int tsmallMatrix[SMALL_MATRIX_SIZE][SMALL_MATRIX_SIZE]; 
 	int size;
     	int rank;
 	int i;
@@ -31,9 +31,7 @@ int main(int argc, char **argv) {
     	MPI_Status status;
     	MPI_Init(&argc, &argv);
     	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    	MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    	printf("Number of threads: %d\n", size);    
+    	MPI_Comm_size(MPI_COMM_WORLD, &size);   
 
 	if (rank == 0) {
 		matrix = (int **)calloc(MATRIX_SIZE, sizeof(int *));
@@ -70,7 +68,7 @@ int main(int argc, char **argv) {
 
 			for (j = 0; j < SMALL_MATRIX_SIZE; j++) {
 				for (k = 0; k < SMALL_MATRIX_SIZE; k++) {
-					smallMatrix[j][k] = matrix[line * MATRIX_SIZE_IN_SMALL_MATRIX + j][column * MATRIX_SIZE_IN_SMALL_MATRIX + k];
+					smallMatrix[j][k] = matrix[line * SMALL_MATRIX_SIZE + j][column * SMALL_MATRIX_SIZE + k];
 				}
 			}
 			MPI_Send(smallMatrix, bufSize, MPI_INT, i, 5, MPI_COMM_WORLD);
@@ -112,7 +110,7 @@ int main(int argc, char **argv) {
 
                         for (j = 0; j < SMALL_MATRIX_SIZE; j++) {
                                 for (k = 0; k < SMALL_MATRIX_SIZE; k++) {
-                                        tmatrix[line * MATRIX_SIZE_IN_SMALL_MATRIX + j][column * MATRIX_SIZE_IN_SMALL_MATRIX + k] = tsmallMatrix[j][k];
+                                        tmatrix[line * SMALL_MATRIX_SIZE  + j][column * SMALL_MATRIX_SIZE + k] = tsmallMatrix[j][k];
                                 }
 			}
                 }
