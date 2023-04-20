@@ -9,7 +9,6 @@
 int main(int argc, char **argv) {
 	int size;
     	int rank;
-	int string[MATRIX_SIZE];
 	int column[MATRIX_SIZE];
 	int i;
 	int j;
@@ -57,10 +56,7 @@ int main(int argc, char **argv) {
 	if (rank == 0) {
 		for (i = 0; i < MATRIX_SIZE; i++) {
 			printf("proc %d i %d\n", (i % (size - 1)) + 1, i);
-			MPI_Recv(string, MATRIX_SIZE, MPI_INT, (i % (size - 1)) + 1, 5, MPI_COMM_WORLD, &status);
-			for (j = 0; j < MATRIX_SIZE; j++) {
-				tmatrix[i][j] = string[j];
-			}
+			MPI_Recv(tmatrix[i], MATRIX_SIZE, MPI_INT, (i % (size - 1)) + 1, 5, MPI_COMM_WORLD, &status);
 		}
 	}
 
