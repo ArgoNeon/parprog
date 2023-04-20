@@ -4,23 +4,16 @@
 #include <math.h>
 #include "mpi.h"
 
-#define MATRIX_SIZE 16
-#define SMALL_MATRIX_SIZE 8
-#define MATRIX_SIZE_IN_SMALL_MATRIX 2
+#define MATRIX_SIZE 32
 
 int main(int argc, char **argv) {
-	int smallMatrix[SMALL_MATRIX_SIZE][SMALL_MATRIX_SIZE];
-	int tsmallMatrix[SMALL_MATRIX_SIZE][SMALL_MATRIX_SIZE]; 
 	int size;
     	int rank;
+	int string[MATRIX_SIZE];
+	int column[MATRIX_SIZE];
 	int i;
 	int j;
 	int k;
-	int trank;
-	int n = MATRIX_SIZE;
-	int bufSize = SMALL_MATRIX_SIZE * SMALL_MATRIX_SIZE;
-	int line;
-        int column;
 	/*int matrix[MATRIX_SIZE][MATRIX_SIZE] = {	{1,	2, 	3, 	4},
 	       						{5,	6, 	7, 	8},
 							{9,	10, 	11, 	12},
@@ -33,19 +26,19 @@ int main(int argc, char **argv) {
     	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     	MPI_Comm_size(MPI_COMM_WORLD, &size);   
 
-	if (rank == 0) {
-		matrix = (int **)calloc(MATRIX_SIZE, sizeof(int *));
+	matrix = (int **)calloc(MATRIX_SIZE, sizeof(int *));
 
-                for (i = 0; i < MATRIX_SIZE; i++) {
-                        matrix[i] = (int *)calloc(MATRIX_SIZE, sizeof(int));
-                }
+        for (i = 0; i < MATRIX_SIZE; i++) {
+        	matrix[i] = (int *)calloc(MATRIX_SIZE, sizeof(int));
+       	}
 
-		for (j = 0; j < MATRIX_SIZE; j++) {
-                                for (k = 0; k < MATRIX_SIZE; k++) {
-                                        matrix[j][k] = j * MATRIX_SIZE + k;
-                                }
-                }
+	for (j = 0; j < MATRIX_SIZE; j++) {
+        	for (k = 0; k < MATRIX_SIZE; k++) {
+                	matrix[j][k] = j * MATRIX_SIZE + k;
+             	}
+     	}
 
+	 if (rank == 0) {
 		for (j = 0; j < MATRIX_SIZE; j++) {
                                 for (k = 0; k < MATRIX_SIZE; k++) {
                                         printf ("%6d", matrix[j][k]);
@@ -62,61 +55,29 @@ int main(int argc, char **argv) {
 	}
 
 	if (rank == 0) {
-		for (i = 1; i < size; i++) {
-			line = i / MATRIX_SIZE_IN_SMALL_MATRIX;
-			column = i % MATRIX_SIZE_IN_SMALL_MATRIX;
-
-			for (j = 0; j < SMALL_MATRIX_SIZE; j++) {
-				for (k = 0; k < SMALL_MATRIX_SIZE; k++) {
-					smallMatrix[j][k] = matrix[line * SMALL_MATRIX_SIZE + j][column * SMALL_MATRIX_SIZE + k];
-				}
+		for (i = 0; i < MATRIX_SIZE; i++) {
+			printf("proc %d i %d\n", (i % (size - 1)) + 1, i);
+			MPI_Recv(string, MATRIX_SIZE, MPI_INT, (i % (size - 1)) + 1, 5, MPI_COMM_WORLD, &status);
+			for (j = 0; j < MATRIX_SIZE; j++) {
+				tmatrix[i][j] = string[j];
 			}
-			MPI_Send(smallMatrix, bufSize, MPI_INT, i, 5, MPI_COMM_WORLD);
 		}
-		for (j = 0; j < SMALL_MATRIX_SIZE; j++) {
-                                for (k = 0; k < SMALL_MATRIX_SIZE; k++) {
-                                        smallMatrix[j][k] = matrix[j][k];
-                                }
-		}
-	}
-
-        if (rank == 0) {
-                for (j = 0; j < SMALL_MATRIX_SIZE; j++)
-                        for (k = 0; k < SMALL_MATRIX_SIZE; k++)
-                                tsmallMatrix[j][k] = smallMatrix[k][j];
 	}
 
 
 	if (rank != 0) {
-		MPI_Recv(&smallMatrix, bufSize, MPI_INT, 0, 5, MPI_COMM_WORLD, &status);
-		for (j = 0; j < SMALL_MATRIX_SIZE; j++)
-			for (k = 0; k < SMALL_MATRIX_SIZE; k++)
-				tsmallMatrix[j][k] = smallMatrix[k][j];
-
-		MPI_Send(tsmallMatrix, bufSize, MPI_INT, 0, 5, MPI_COMM_WORLD);
+		for (i = 0; i < MATRIX_SIZE; i++) {
+			if (rank == (i % (size - 1)) + 1) {
+				for (j = 0; j < MATRIX_SIZE; j++) {
+					column[j] = matrix[i][j];
+				}
+				MPI_Send(column, MATRIX_SIZE, MPI_INT, 0, 5, MPI_COMM_WORLD);
+			}
+		}
 	}
 
         if (rank == 0) {
-		for (j = 0; j < SMALL_MATRIX_SIZE; j++) {
-                                for (k = 0; k < SMALL_MATRIX_SIZE; k++) {
-                                        tmatrix[j][k] = tsmallMatrix[j][k];
-                                }
-                        }
-
-                for (i = 1; i < size; i++) {
-			MPI_Recv(tsmallMatrix, bufSize, MPI_INT, i, 5, MPI_COMM_WORLD, &status);
-                        line = i % MATRIX_SIZE_IN_SMALL_MATRIX;
-                        column = i / MATRIX_SIZE_IN_SMALL_MATRIX;
-
-                        for (j = 0; j < SMALL_MATRIX_SIZE; j++) {
-                                for (k = 0; k < SMALL_MATRIX_SIZE; k++) {
-                                        tmatrix[line * SMALL_MATRIX_SIZE  + j][column * SMALL_MATRIX_SIZE + k] = tsmallMatrix[j][k];
-                                }
-			}
-                }
-		
 		printf("\n");
-
 		for (j = 0; j < MATRIX_SIZE; j++) {
                                 for (k = 0; k < MATRIX_SIZE; k++) {
                                         printf ("%6d", tmatrix[j][k]);
@@ -127,17 +88,16 @@ int main(int argc, char **argv) {
 	}
 
 	if (rank == 0) {
+		for (i = 0; i < MATRIX_SIZE; i++) {
+         	       free(matrix[i]);
+        	}
 
 		for (i = 0; i < MATRIX_SIZE; i++) {
                 	        free(tmatrix[i]);
 		}
 
-		for (i = 0; i < MATRIX_SIZE; i++) {
-                	        free(matrix[i]);
-        	}
-
-		free(tmatrix);
 		free(matrix);
+		free(tmatrix);
 	}
 
 	MPI_Finalize();
